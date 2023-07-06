@@ -1,5 +1,5 @@
 import React from "react";
-import ReactDOM from "react-dom";
+import { createRoot } from "react-dom/client";
 import "./index.css";
 import App from "./App";
 import Youtube from "./service/youtube";
@@ -11,9 +11,8 @@ const httpClient = axios.create({
 });
 const youtube = new Youtube(httpClient);
 
-ReactDOM.render(
+createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <App youtube={youtube} />
-  </React.StrictMode>,
-  document.getElementById("root")
+  </React.StrictMode>
 );

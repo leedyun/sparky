@@ -17,14 +17,26 @@ const MAX_RESULTS = 10;
 function App() {
   const [videos, setVideos] = useState([]);
   const [selectedVideo, setSelectedVideo] = useState(null);
-  const [accessToken, setAccessToken] = useState("");
 
   const selectVideo = (video) => {
     setSelectedVideo(video);
   };
 
   useEffect(() => {
-    authenticate();
+    const storedAccessToken = localStorage.getItem("accessToken");
+
+    if (storedAccessToken && !isTokenExpired(storedAccessToken)) {
+      fetchChannelVideos(storedAccessToken);
+    } else {
+      const urlParams = new URLSearchParams(window.location.search);
+      const code = urlParams.get("code");
+
+      if (code) {
+        fetchAccessToken(code);
+      } else {
+        authenticate();
+      }
+    }
   }, []);
 
   const authenticate = () => {
@@ -37,16 +49,14 @@ function App() {
     window.location.href = `${AUTH_ENDPOINT}?${params}`;
   };
 
-  useEffect(() => {
-    handleAuthorization();
-  }, []);
-
   const handleAuthorization = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const code = urlParams.get("code");
 
     if (code) {
       fetchAccessToken(code);
+    } else {
+      authenticate();
     }
   };
 
@@ -62,9 +72,11 @@ function App() {
     axios
       .post(TOKEN_ENDPOINT, data)
       .then((response) => {
-        const { access_token } = response.data;
-        setAccessToken(access_token); // 액세스 토큰 저장
-        fetchChannelVideos(access_token);
+        const { access_token, expires_in } = response.data;
+        const expirationTime = Math.floor(Date.now() / 1000) + expires_in;
+        localStorage.setItem("accessToken", access_token);
+        localStorage.setItem("expirationTime", expirationTime);
+        window.location.href = REDIRECT_URI;
       })
       .catch((error) => {
         console.error("Error fetching access token:", error);
@@ -87,14 +99,39 @@ function App() {
       })
       .then((response) => {
         const { items } = response.data;
-        if (items.length === 0) {
-          console.error("No channel found.");
-          return;
-        }
 
-        const uploadsPlaylistId =
-          items[0].contentDetails.relatedPlaylists.uploads;
-        fetchPlaylistVideos(uploadsPlaylistId, accessToken);
+        if (items.length > 0) {
+          const channelId = items[0].id;
+          fetchVideos(channelId, accessToken);
+        }
+      })
+      .catch((error) => {
+        console.error("Error fetching channel videos:", error);
+      });
+  };
+
+  const fetchVideos = (channelId, accessToken) => {
+    const headers = {
+      Authorization: `Bearer ${accessToken}`,
+    };
+
+    axios
+      .get(CHANNELS_ENDPOINT, {
+        headers,
+        params: {
+          part: "contentDetails",
+          id: channelId,
+          key: API_KEY,
+        },
+      })
+      .then((response) => {
+        const { items } = response.data;
+
+        if (items.length > 0) {
+          const uploadsPlaylistId =
+            items[0].contentDetails.relatedPlaylists.uploads;
+          fetchPlaylistVideos(uploadsPlaylistId, accessToken);
+        }
       })
       .catch((error) => {
         console.error("Error fetching channel videos:", error);
@@ -102,43 +139,52 @@ function App() {
   };
 
   const fetchPlaylistVideos = (playlistId, accessToken) => {
+    const headers = {
+      Authorization: `Bearer ${accessToken}`,
+    };
+
     axios
       .get("https://www.googleapis.com/youtube/v3/playlistItems", {
+        headers,
         params: {
           part: "snippet",
           playlistId: playlistId,
           maxResults: MAX_RESULTS,
           key: API_KEY,
         },
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-        },
       })
       .then((response) => {
         const { items } = response.data;
-        setVideos(items || []);
+        setVideos(items);
+        setSelectedVideo(items[0]); // 선택된 동영상을 첫 번째 동영상으로 설정
       })
       .catch((error) => {
-        console.error("Error fetching playlist videos:", error);
+        console.error("Error fetching videos:", error);
       });
+  };
+
+  const isTokenExpired = (token) => {
+    const expirationTime = localStorage.getItem("expirationTime");
+    return Date.now() / 1000 >= expirationTime;
   };
 
   return (
     <div className={styles.app}>
-      <section className={styles.content}>
-        {selectedVideo && (
-          <div className={styles.detail}>
+      {selectedVideo ? (
+        <div>
+          <h1>YouTube Video Player</h1>
+          <div className={styles.container}>
             <VideoDetail video={selectedVideo} />
+            <VideoList
+              videos={videos}
+              onVideoClick={selectVideo}
+              display="grid"
+            />
           </div>
-        )}
-        <div className={styles.list}>
-          <VideoList
-            videos={videos}
-            onVideoClick={selectVideo}
-            display={selectedVideo ? "list" : "grid"}
-          />
         </div>
-      </section>
+      ) : (
+        <button onClick={authenticate}>Authenticate</button>
+      )}
     </div>
   );
 }
