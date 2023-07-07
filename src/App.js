@@ -89,10 +89,10 @@ function App() {
     };
 
     axios
-      .get(CHANNELS_ENDPOINT, {
+      .get("https://www.googleapis.com/youtube/v3/channels", {
         headers,
         params: {
-          part: "contentDetails",
+          part: "snippet",
           mine: true,
           key: API_KEY,
         },

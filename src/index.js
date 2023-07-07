@@ -9,6 +9,9 @@ const httpClient = axios.create({
   baseURL: "https://www.googleapis.com/youtube/v3",
   params: { key: process.env.AIzaSyBzQ54f3UEtxQZC_jT54Nyb6U5iEK978lM },
 });
+httpClient.defaults.withCredentials = true;
+httpClient.defaults.headers.common["SameSite"] = "None";
+httpClient.defaults.headers.common["Secure"] = true;
 const youtube = new Youtube(httpClient);
 
 createRoot(document.getElementById("root")).render(
