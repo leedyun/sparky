@@ -1,4 +1,4 @@
-import React from 'react';
+import React from "react";
 
 const VideoDetail = ({ video }) => {
   const videoId = video.snippet.resourceId.videoId;
@@ -14,10 +14,11 @@ const VideoDetail = ({ video }) => {
         src={src}
         allowFullScreen
       />
-      <h2>{video && video.snippet.title}</h2>
-      <h2>{videoId}</h2>
-      <h3>{video && video.snippet.channelTitle}</h3>
-      <pre>{video && video.snippet.description}</pre>
+      <h2>동영상 제목 : {video && video.snippet.title}</h2>
+      <h3>채널명 : {video && video.snippet.channelTitle}</h3>
+      {video?.snippet?.description && (
+        <pre>description : {video.snippet.description}</pre>
+      )}
     </div>
   ) : null;
 };

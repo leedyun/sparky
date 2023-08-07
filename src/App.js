@@ -23,8 +23,10 @@ function App() {
   };
 
   useEffect(() => {
+    // 엑세스 토큰 불러오기(로컬스토리지 : 사용자가 인증 후 저장)
     const storedAccessToken = localStorage.getItem("accessToken");
 
+    // 유효성 검사
     if (storedAccessToken && !isTokenExpired(storedAccessToken)) {
       fetchChannelVideos(storedAccessToken);
     } else {
@@ -32,8 +34,10 @@ function App() {
       const code = urlParams.get("code");
 
       if (code) {
+        // 토큰이 만료된 경우
         fetchAccessToken(code);
       } else {
+        // 인증이 필요한경우
         authenticate();
       }
     }
@@ -47,17 +51,6 @@ function App() {
       response_type: "code",
     });
     window.location.href = `${AUTH_ENDPOINT}?${params}`;
-  };
-
-  const handleAuthorization = () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const code = urlParams.get("code");
-
-    if (code) {
-      fetchAccessToken(code);
-    } else {
-      authenticate();
-    }
   };
 
   const fetchAccessToken = (code) => {
@@ -172,14 +165,10 @@ function App() {
     <div className={styles.app}>
       {selectedVideo ? (
         <div>
-          <h1>YouTube Video Player</h1>
+          <h1>YouTube Video List</h1>
           <div className={styles.container}>
             <VideoDetail video={selectedVideo} />
-            <VideoList
-              videos={videos}
-              onVideoClick={selectVideo}
-              display="grid"
-            />
+            <VideoList videos={videos} onVideoClick={selectVideo} />
           </div>
         </div>
       ) : (

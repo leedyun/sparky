@@ -1,32 +1,21 @@
-class YoutubeFetch {
-  constructor(key) {
-    this.key = key;
-    this.getRequestOptions = {
-      method: "GET",
-      redirect: "follow",
-    };
-  }
+const getChannelVideos = (key, channelId) => {
+  const getRequestOptions = {
+    method: "GET",
+    redirect: "follow",
+  };
 
-  mostPopular() {
-    return fetch(
-      `https://www.googleapis.com/youtube/v3/videos?part=snippet&chart=mostPopular&maxResults=25&key=${this.key}`,
-      this.getRequestOptions
-    )
-      .then((response) => response.json())
-      .then((result) => result.items);
-  }
+  const channelInfoUrl = `https://www.googleapis.com/youtube/v3/channels?part=contentDetails&id=${channelId}&key=${key}`;
 
-  search(query) {
-    const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=25&q=${query}&type=video&key=${this.key}`;
-    return fetch(searchUrl)
-      .then((response) => response.json())
-      .then((result) =>
-        result.items.map((item) => ({
-          ...item,
-          id: item.id.videoId,
-        }))
-      );
-  }
-}
+  return fetch(channelInfoUrl, getRequestOptions)
+    .then((response) => response.json())
+    .then((result) => {
+      const uploadsPlaylistId =
+        result.items[0].contentDetails.relatedPlaylists.uploads;
+      const playlistItemsUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet&playlistId=${uploadsPlaylistId}&maxResults=25&key=${key}`;
+      return fetch(playlistItemsUrl, getRequestOptions)
+        .then((response) => response.json())
+        .then((result) => result.items);
+    });
+};
 
-export default YoutubeFetch;
+export default getChannelVideos;
